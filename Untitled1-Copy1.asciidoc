@@ -1,0 +1,774 @@
++*In[2]:*+
+[source, ipython3]
+----
+import pandas as pd
+----
+
+
++*In[2]:*+
+[source, ipython3]
+----
+import numpy as np
+----
+
+
++*In[3]:*+
+[source, ipython3]
+----
+import sys
+----
+
+
++*In[3]:*+
+[source, ipython3]
+----
+import seaborn as sns
+----
+
+
++*In[28]:*+
+[source, ipython3]
+----
+import trace
+----
+
+
++*In[19]:*+
+[source, ipython3]
+----
+import matplotlib.pyplot as plt
+----
+
+
++*In[6]:*+
+[source, ipython3]
+----
+from sklearn.ensemble import RandomForestClassifier
+----
+
+
++*In[7]:*+
+[source, ipython3]
+----
+from sklearn.feature_extraction.text import CountVectorizer
+----
+
+
++*In[8]:*+
+[source, ipython3]
+----
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
+----
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+
+----
+
+
++*In[11]:*+
+[source, ipython3]
+----
+df = pd.read_csv('amazon_alexa.csv')
+
+----
+
+
++*In[12]:*+
+[source, ipython3]
+----
+df.head()
+----
+
+
++*Out[12]:*+
+----
+[cols=",,,,,",options="header",]
+|===
+| |rating |date |variation |verified_reviews |feedback
+|0 |5 |31-Jul-18 |Charcoal Fabric |Love my Echo! |1
+
+|1 |5 |31-Jul-18 |Charcoal Fabric |Loved it! |1
+
+|2 |4 |31-Jul-18 |Walnut Finish |Sometimes while playing a game, you can
+answer... |1
+
+|3 |5 |31-Jul-18 |Charcoal Fabric |I have had a lot of fun with this
+thing. My 4 ... |1
+
+|4 |5 |31-Jul-18 |Charcoal Fabric |Music |1
+|===
+----
+
+
++*In[13]:*+
+[source, ipython3]
+----
+df.info()
+----
+
+
++*Out[13]:*+
+----
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 3150 entries, 0 to 3149
+Data columns (total 5 columns):
+ #   Column            Non-Null Count  Dtype 
+---  ------            --------------  ----- 
+ 0   rating            3150 non-null   int64 
+ 1   date              3150 non-null   object
+ 2   variation         3150 non-null   object
+ 3   verified_reviews  3150 non-null   object
+ 4   feedback          3150 non-null   int64 
+dtypes: int64(2), object(3)
+memory usage: 123.2+ KB
+----
+
+
++*In[14]:*+
+[source, ipython3]
+----
+# HOW MANY ALEXA PRODUCTS ARE THERE?
+df['variation'].nunique()
+----
+
+
++*Out[14]:*+
+----16----
+
+
++*In[15]:*+
+[source, ipython3]
+----
+# HOW MANY COMMENTS HAVE BEEN MADE ABOUT WHICH PRODUCT? 
+df['variation'].value_counts()
+----
+
+
++*Out[15]:*+
+----Black  Dot                      516
+Charcoal Fabric                 430
+Configuration: Fire TV Stick    350
+Black  Plus                     270
+Black  Show                     265
+Black                           261
+Black  Spot                     241
+White  Dot                      184
+Heather Gray Fabric             157
+White  Spot                     109
+White                            91
+Sandstone Fabric                 90
+White  Show                      85
+White  Plus                      78
+Oak Finish                       14
+Walnut Finish                     9
+Name: variation, dtype: int64----
+
+
++*In[16]:*+
+[source, ipython3]
+----
+# WHICH ALEXA PRODUCT GETS THE HIGHEST VOTES? 
+df.groupby('variation').agg({"rating":"mean"}).sort_values('rating', ascending = False).head()
+
+----
+
+
++*Out[16]:*+
+----
+rating
+
+variation
+
+Walnut Finish
+
+4.888889
+
+Oak Finish
+
+4.857143
+
+Charcoal Fabric
+
+4.730233
+
+Heather Gray Fabric
+
+4.694268
+
+Configuration: Fire TV Stick
+
+4.591429
+----
+
+
++*In[17]:*+
+[source, ipython3]
+----
+# HOW MANY POSITIVE FEEDBACKS ARE THERE? 
+
+# 1 = Positive , 0 = negative
+df["feedback"].value_counts().head()
+----
+
+
++*Out[17]:*+
+----1    2893
+0     257
+Name: feedback, dtype: int64----
+
+
++*In[29]:*+
+[source, ipython3]
+----
+trace0 = go.Bar(
+            x = df[df["feedback"]== 1]["feedback"].value_counts().index.values,
+            y = df[df["feedback"]== 1]["feedback"].value_counts().values,
+            name='Positive Feedback')
+
+----
+
+
++*Out[29]:*+
+----
+
+    ---------------------------------------------------------------------------
+
+    NameError                                 Traceback (most recent call last)
+
+    <ipython-input-29-b43e6565f0ec> in <module>
+    ----> 1 trace0 = go.Bar(
+          2             x = df[df["feedback"]== 1]["feedback"].value_counts().index.values,
+          3             y = df[df["feedback"]== 1]["feedback"].value_counts().values,
+          4             name='Positive Feedback')
+    
+
+    NameError: name 'go' is not defined
+
+----
+
+
++*In[23]:*+
+[source, ipython3]
+----
+# AVERAGE VOTES OF THE PRODUCTS 
+rating = df.groupby('variation').agg({"rating":"mean"})
+----
+
+
++*In[24]:*+
+[source, ipython3]
+----
+rating['variation'] = rating.index
+----
+
+
++*In[25]:*+
+[source, ipython3]
+----
+rating.reset_index(drop=True)
+----
+
+
++*Out[25]:*+
+----
+[cols=",,",options="header",]
+|===
+| |rating |variation
+|0 |4.233716 |Black
+|1 |4.453488 |Black Dot
+|2 |4.370370 |Black Plus
+|3 |4.490566 |Black Show
+|4 |4.311203 |Black Spot
+|5 |4.730233 |Charcoal Fabric
+|6 |4.591429 |Configuration: Fire TV Stick
+|7 |4.694268 |Heather Gray Fabric
+|8 |4.857143 |Oak Finish
+|9 |4.355556 |Sandstone Fabric
+|10 |4.888889 |Walnut Finish
+|11 |4.142857 |White
+|12 |4.423913 |White Dot
+|13 |4.358974 |White Plus
+|14 |4.282353 |White Show
+|15 |4.311927 |White Spot
+|===
+----
+
+
++*In[30]:*+
+[source, ipython3]
+----
+fig = go.Figure(data=trace, layout=layout)
+fig.data[0].marker.line.width = 2
+fig.data[0].marker.line.color = "black"
+py.iplot(fig)
+----
+
+
++*Out[30]:*+
+----
+
+    ---------------------------------------------------------------------------
+
+    NameError                                 Traceback (most recent call last)
+
+    <ipython-input-30-4edcdccfc8b0> in <module>
+    ----> 1 fig = go.Figure(data=trace, layout=layout)
+          2 fig.data[0].marker.line.width = 2
+          3 fig.data[0].marker.line.color = "black"
+          4 py.iplot(fig)
+    
+
+    NameError: name 'go' is not defined
+
+----
+
+
++*In[31]:*+
+[source, ipython3]
+----
+#The date and rating of users' comments have been removed. The date on which the comment is made does not matter about the comment. 
+#It may cause overfitting as the given score will be directly proportional to the comment. 
+#Therefore, the date and rating columns have been removed.
+df = df.drop(['date','rating'], axis=1)
+----
+
+
++*In[32]:*+
+[source, ipython3]
+----
+df.head()
+----
+
+
++*Out[32]:*+
+----
+[cols=",,,",options="header",]
+|===
+| |variation |verified_reviews |feedback
+|0 |Charcoal Fabric |Love my Echo! |1
+
+|1 |Charcoal Fabric |Loved it! |1
+
+|2 |Walnut Finish |Sometimes while playing a game, you can answer... |1
+
+|3 |Charcoal Fabric |I have had a lot of fun with this thing. My 4 ...
+|1
+
+|4 |Charcoal Fabric |Music |1
+|===
+----
+
+
++*In[33]:*+
+[source, ipython3]
+----
+# Each of the products has been adjusted for the random forest.
+variation_dummies = pd.get_dummies(df['variation'], drop_first = True)
+variation_dummies.head()
+----
+
+
++*Out[33]:*+
+----
+[cols=",,,,,,,,,,,,,,,",options="header",]
+|===
+| |Black Dot |Black Plus |Black Show |Black Spot |Charcoal Fabric
+|Configuration: Fire TV Stick |Heather Gray Fabric |Oak Finish
+|Sandstone Fabric |Walnut Finish |White |White Dot |White Plus |White
+Show |White Spot
+|0 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|2 |0 |0 |0 |0 |0 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0
+
+|3 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|4 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+|===
+----
+
+
++*In[34]:*+
+[source, ipython3]
+----
+df.drop(['variation'], axis=1, inplace=True)
+----
+
+
++*In[35]:*+
+[source, ipython3]
+----
+df.head()
+----
+
+
++*Out[35]:*+
+----
+[cols=",,",options="header",]
+|===
+| |verified_reviews |feedback
+|0 |Love my Echo! |1
+|1 |Loved it! |1
+|2 |Sometimes while playing a game, you can answer... |1
+|3 |I have had a lot of fun with this thing. My 4 ... |1
+|4 |Music |1
+|===
+----
+
+
++*In[36]:*+
+[source, ipython3]
+----
+df = pd.concat([df, variation_dummies], axis=1)
+
+----
+
+
++*In[37]:*+
+[source, ipython3]
+----
+df.head()
+----
+
+
++*Out[37]:*+
+----
+[cols=",,,,,,,,,,,,,,,,,",options="header",]
+|===
+| |verified_reviews |feedback |Black Dot |Black Plus |Black Show |Black
+Spot |Charcoal Fabric |Configuration: Fire TV Stick |Heather Gray Fabric
+|Oak Finish |Sandstone Fabric |Walnut Finish |White |White Dot |White
+Plus |White Show |White Spot
+|0 |Love my Echo! |1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|1 |Loved it! |1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|2 |Sometimes while playing a game, you can answer... |1 |0 |0 |0 |0 |0
+|0 |0 |0 |0 |1 |0 |0 |0 |0 |0
+
+|3 |I have had a lot of fun with this thing. My 4 ... |1 |0 |0 |0 |0 |1
+|0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|4 |Music |1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+|===
+----
+
+
++*In[38]:*+
+[source, ipython3]
+----
+# All of the comments have been vectorized. 
+# In this way, it was made meaningful for the random forest algorithm. 
+# Each word in the data set was expressed as a number. 
+# NLP techniques were not applied in detail in this study. 
+from sklearn.feature_extraction.text import CountVectorizer
+vectorizer = CountVectorizer()
+----
+
+
++*In[39]:*+
+[source, ipython3]
+----
+alexa_countvectorizer = vectorizer.fit_transform(df['verified_reviews'])
+----
+
+
++*In[40]:*+
+[source, ipython3]
+----
+alexa_countvectorizer.shape
+----
+
+
++*Out[40]:*+
+----(3150, 4044)----
+
+
++*In[41]:*+
+[source, ipython3]
+----
+print(alexa_countvectorizer.toarray())
+
+----
+
+
++*Out[41]:*+
+----
+[[0 0 0 ... 0 0 0]
+ [0 0 0 ... 0 0 0]
+ [0 0 0 ... 0 0 0]
+ ...
+ [0 0 0 ... 0 0 0]
+ [0 0 0 ... 0 0 0]
+ [0 0 0 ... 0 0 0]]
+----
+
+
++*In[42]:*+
+[source, ipython3]
+----
+df.drop(['verified_reviews'], axis=1, inplace = True)
+----
+
+
++*In[43]:*+
+[source, ipython3]
+----
+df.head()
+----
+
+
++*Out[43]:*+
+----
+[cols=",,,,,,,,,,,,,,,,",options="header",]
+|===
+| |feedback |Black Dot |Black Plus |Black Show |Black Spot |Charcoal
+Fabric |Configuration: Fire TV Stick |Heather Gray Fabric |Oak Finish
+|Sandstone Fabric |Walnut Finish |White |White Dot |White Plus |White
+Show |White Spot
+|0 |1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|1 |1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|2 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0
+
+|3 |1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|4 |1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+|===
+----
+
+
++*In[44]:*+
+[source, ipython3]
+----
+encoded_reviews = pd.DataFrame(alexa_countvectorizer.toarray())
+----
+
+
++*In[45]:*+
+[source, ipython3]
+----
+encoded_reviews.head()
+----
+
+
++*Out[45]:*+
+----
+[cols=",,,,,,,,,,,,,,,,,,,,,",options="header",]
+|===
+| |0 |1 |2 |3 |4 |5 |6 |7 |8 |9 |... |4034 |4035 |4036 |4037 |4038 |4039
+|4040 |4041 |4042 |4043
+|0 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0 |... |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0 |... |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|2 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0 |... |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|3 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0 |... |0 |1 |0 |0 |0 |0 |0 |0 |0 |0
+
+|4 |0 |0 |0 |0 |0 |0 |0 |0 |0 |0 |... |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+|===
+
+5 rows × 4044 columns
+----
+
+
++*In[46]:*+
+[source, ipython3]
+----
+df = pd.concat([df, encoded_reviews], axis=1)
+----
+
+
++*In[47]:*+
+[source, ipython3]
+----
+df.head()
+----
+
+
++*Out[47]:*+
+----
+[cols=",,,,,,,,,,,,,,,,,,,,,",options="header",]
+|===
+| |feedback |Black Dot |Black Plus |Black Show |Black Spot |Charcoal
+Fabric |Configuration: Fire TV Stick |Heather Gray Fabric |Oak Finish
+|Sandstone Fabric |... |4034 |4035 |4036 |4037 |4038 |4039 |4040 |4041
+|4042 |4043
+|0 |1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |... |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|1 |1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |... |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|2 |1 |0 |0 |0 |0 |0 |0 |0 |0 |0 |... |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+
+|3 |1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |... |0 |1 |0 |0 |0 |0 |0 |0 |0 |0
+
+|4 |1 |0 |0 |0 |0 |1 |0 |0 |0 |0 |... |0 |0 |0 |0 |0 |0 |0 |0 |0 |0
+|===
+
+5 rows × 4060 columns
+----
+
+
++*In[48]:*+
+[source, ipython3]
+----
+X = df.drop(['feedback'], axis=1)
+----
+
+
++*In[49]:*+
+[source, ipython3]
+----
+y = df['feedback']
+----
+
+
++*In[50]:*+
+[source, ipython3]
+----
+X_train, X_test, y_train, y_test = train_test_split(X,y, test_size=0.25, random_state = 345)
+
+----
+
+
++*In[51]:*+
+[source, ipython3]
+----
+print("X_train Size :",X_train.shape)
+----
+
+
++*Out[51]:*+
+----
+X_train Size : (2362, 4059)
+----
+
+
++*In[52]:*+
+[source, ipython3]
+----
+print("X_test Size :",X_test.shape)
+----
+
+
++*Out[52]:*+
+----
+X_test Size : (788, 4059)
+----
+
+
++*In[53]:*+
+[source, ipython3]
+----
+print("y_train Size :",y_train.shape)
+----
+
+
++*Out[53]:*+
+----
+y_train Size : (2362,)
+----
+
+
++*In[54]:*+
+[source, ipython3]
+----
+print("y_test Size :",y_test.shape)
+----
+
+
++*Out[54]:*+
+----
+y_test Size : (788,)
+----
+
+
++*In[55]:*+
+[source, ipython3]
+----
+rf_params = {"n_estimators" :[100,200,500,1000], 
+             "max_features": [3,5,7], 
+             "min_samples_split": [2,5,10,30],
+             "max_depth": [3,5,8,None]}
+----
+
+
++*In[56]:*+
+[source, ipython3]
+----
+rf_model = RandomForestClassifier(random_state = 357)
+----
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+rf_cv_model = GridSearchCV(rf_model, rf_params, cv = 10, n_jobs = -1,verbose = 1).fit(X_train, y_train)
+----
+
+
++*Out[ ]:*+
+----
+Fitting 10 folds for each of 192 candidates, totalling 1920 fits
+
+[Parallel(n_jobs=-1)]: Using backend LokyBackend with 8 concurrent workers.
+[Parallel(n_jobs=-1)]: Done  34 tasks      | elapsed:   13.6s
+[Parallel(n_jobs=-1)]: Done 184 tasks      | elapsed:   51.3s
+[Parallel(n_jobs=-1)]: Done 434 tasks      | elapsed:  1.9min
+[Parallel(n_jobs=-1)]: Done 784 tasks      | elapsed:  3.6min
+[Parallel(n_jobs=-1)]: Done 1234 tasks      | elapsed:  5.8min
+----
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+tuned = [rf_tuned]
+print("Best Model Parameters and Scores:")
+
+----
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+for i in tuned:
+    score = cross_val_score(i, X_train, y_train, cv = 10).mean()
+   
+----
+
+
++*In[4]:*+
+[source, ipython3]
+----
+ print(i,"score:",score)
+----
+
+
++*Out[4]:*+
+----
+
+    ---------------------------------------------------------------------------
+
+    NameError                                 Traceback (most recent call last)
+
+    <ipython-input-4-ab7dcd801e53> in <module>
+    ----> 1 print(i,"score:",score)
+    
+
+    NameError: name 'i' is not defined
+
+----
+
+
++*In[ ]:*+
+[source, ipython3]
+----
+
+----
